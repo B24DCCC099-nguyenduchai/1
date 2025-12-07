@@ -1,4 +1,4 @@
-import './Dashboard.css';
+/* import './Dashboard.css';
 
 const Dashboard = () => {
   return (
@@ -27,6 +27,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+ */
 
 
 
@@ -37,26 +38,30 @@ export default Dashboard;
 
 
 
-
-
-/* 
 // src/pages/Dashboard.tsx
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Dashboard.css';
 
+interface Stats {
+  totalProducts: number;
+  ordersToday: number;
+  monthlyRevenue: number;
+  lowStock: number;
+}
+
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<Stats>({
     totalProducts: 0,
     ordersToday: 0,
     monthlyRevenue: 0,
     lowStock: 0,
   });
 
+  // Hàm gọi API backend
   const fetchStats = async () => {
     try {
-      // Giả sử backend có API /api/dashboard trả về tổng quan
-      const response = await axios.get('http://localhost:8000/api/dashboard');
+      const response = await axios.get('http://localhost:8000/api/dashboard'); // KHÔNG dấu /
       setStats(response.data);
     } catch (error) {
       console.error('Lỗi khi lấy dữ liệu dashboard:', error);
@@ -64,11 +69,11 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(); // gọi lần đầu khi load
 
-    // Nếu muốn tự động cập nhật mỗi 30s:
+    // tự động refresh mỗi 30 giây
     const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
+    return () => clearInterval(interval); // cleanup khi unmount
   }, []);
 
   return (
@@ -89,11 +94,13 @@ const Dashboard = () => {
         </div>
         <div className="stat-card">
           <h3>Tồn kho thấp</h3>
-          <p className="number warning">{stats.lowStock} sản phẩm</p>
+          <p className={`number ${stats.lowStock > 0 ? 'warning' : ''}`}>
+            {stats.lowStock} sản phẩm
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard; */
+export default Dashboard;

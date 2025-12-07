@@ -49,3 +49,74 @@ def login(username: str, password: str, conn=Depends(get_db)):
             "role": user['role']
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# routers/auth.py
+# from fastapi import APIRouter, HTTPException, Depends
+# from pydantic import BaseModel
+# from passlib.context import CryptContext
+# from database import get_db  # MySQL connection
+# import mysql.connector
+
+# router = APIRouter()
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# class LoginModel(BaseModel):
+#     username: str
+#     password: str
+
+# class RegisterModel(BaseModel):
+#     username: str
+#     password: str
+#     fullname: str
+#     email: str
+
+# # Login
+# @router.post("/login")
+# def login(data: LoginModel, conn=Depends(get_db)):
+#     cursor = conn.cursor(dictionary=True)
+#     cursor.execute("SELECT * FROM users WHERE username=%s", (data.username,))
+#     user = cursor.fetchone()
+#     cursor.close()
+
+#     if not user or not pwd_context.verify(data.password, user["password_hash"]):
+#         raise HTTPException(status_code=401, detail="Tên đăng nhập hoặc mật khẩu sai")
+
+#     return {
+#         "message": "Đăng nhập thành công",
+#         "user": {
+#             "username": user["username"],
+#             "fullname": user["fullname"],
+#             "email": user["email"],
+#             "role": user["role"]
+#         }
+#     }
+
+# # Register
+# @router.post("/register")
+# def register(data: RegisterModel, conn=Depends(get_db)):
+#     cursor = conn.cursor()
+#     hashed = pwd_context.hash(data.password)
+#     try:
+#         cursor.execute(
+#             "INSERT INTO users (username, fullname, email, password_hash) VALUES (%s,%s,%s,%s)",
+#             (data.username, data.fullname, data.email, hashed)
+#         )
+#         conn.commit()
+#     except mysql.connector.IntegrityError:
+#         raise HTTPException(status_code=400, detail="Username đã tồn tại")
+#     finally:
+#         cursor.close()
+#     return {"message": "Đăng ký thành công"}

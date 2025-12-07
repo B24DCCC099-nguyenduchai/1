@@ -27,12 +27,8 @@ const OrderPage = () => {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [total, setTotal] = useState(0);
 
+  useEffect(() => { fetchAll(); }, []);
   useEffect(() => {
-    fetchAll();
-  }, []);
-
-  useEffect(() => {
-    // Tính tổng tiền live
     let sum = 0;
     chiTiet.forEach(item => {
       const prod = products.find(p => p.id === item.product_id);
@@ -59,7 +55,6 @@ const OrderPage = () => {
 
   const themDong = () => setChiTiet([...chiTiet, { product_id: 0, so_luong: 1 }]);
   const xoaDong = (i: number) => setChiTiet(chiTiet.filter((_, idx) => idx !== i));
-
   const resetForm = () => {
     setCustomerId('');
     setChiTiet([{ product_id: 0, so_luong: 1 }]);
@@ -73,22 +68,10 @@ const OrderPage = () => {
     if (chiTiet.some(x => x.product_id === 0)) return alert('Vui lòng chọn sản phẩm!');
 
     try {
-      const payload = {
-        customer_id: customerId,
-        chi_tiet: chiTiet.map(x => ({ product_id: x.product_id, so_luong: x.so_luong }))
-      };
-
-      if (editingId) {
-        await api.put(`/orders/${editingId}`, payload);
-        alert('Cập nhật đơn hàng thành công!');
-      } else {
-        const res = await api.post('/orders', payload);
-        alert(res.data.message);
-      }
-
-      setShowModal(false);
-      resetForm();
-      fetchAll();
+      const payload = { customer_id: customerId, chi_tiet: chiTiet.map(x => ({ product_id: x.product_id, so_luong: x.so_luong })) };
+      if (editingId) { await api.put(`/orders/${editingId}`, payload); alert('Cập nhật đơn hàng thành công!'); }
+      else { const res = await api.post('/orders', payload); alert(res.data.message); }
+      setShowModal(false); resetForm(); fetchAll();
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Lỗi khi lưu đơn hàng!');
     }
@@ -97,20 +80,21 @@ const OrderPage = () => {
   const handleEdit = (order: Order) => {
     setEditingId(order.id);
     setCustomerId(order.customer_id || '');
-    setChiTiet(order.chi_tiet?.map(item => ({
-      product_id: item.product_id,
-      so_luong: item.so_luong
-    })) || [{ product_id: 0, so_luong: 1 }]);
+    setChiTiet(order.chi_tiet?.map(item => ({ product_id: item.product_id, so_luong: item.so_luong })) || [{ product_id: 0, so_luong: 1 }]);
     setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Xóa đơn hàng này?')) return;
+    try { await api.delete(`/orders/${id}`); fetchAll(); alert('Xóa thành công!'); }
+    catch { alert('Xóa thất bại!'); }
+  };
+
+  const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      await api.delete(`/orders/${id}`);
+      await api.put(`/orders/update-status/${id}`, { trang_thai: newStatus });
       fetchAll();
-      alert('Xóa thành công!');
-    } catch { alert('Xóa thất bại!'); }
+    } catch { alert("Cập nhật trạng thái thất bại!"); }
   };
 
   return (
@@ -149,7 +133,14 @@ const OrderPage = () => {
                 <td>{new Date(o.ngay_mua).toLocaleString('vi-VN')}</td>
                 <td>{Number(o.tong_tien).toLocaleString()} ₫</td>
                 <td>
-                  <span className={`status ${o.trang_thai === 'Đã giao' ? 'success' : 'warning'}`}>{o.trang_thai}</span>
+                  <select
+                    value={o.trang_thai}
+                    onChange={e => handleStatusChange(o.id, e.target.value)}
+                  >
+                    <option value="Chờ giao">Chờ giao</option>
+                    <option value="Đã giao">Đã giao</option>
+                    <option value="Hủy">Hủy</option>
+                  </select>
                 </td>
                 <td>
                   <button onClick={() => handleEdit(o)} className="btn-edit"><Edit2 size={16} /></button>
@@ -169,37 +160,19 @@ const OrderPage = () => {
             <form onSubmit={handleSubmit}>
               <select value={customerId} onChange={e => setCustomerId(Number(e.target.value))} required>
                 <option value="">-- Chọn khách hàng --</option>
-                {customers.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.ma_kh} - {c.ho_ten} ({c.dien_thoai})
-                  </option>
-                ))}
+                {customers.map(c => (<option key={c.id} value={c.id}>{c.ma_kh} - {c.ho_ten} ({c.dien_thoai})</option>))}
               </select>
 
               <div style={{ margin: '20px 0' }}>
                 <h4>Chi tiết sản phẩm</h4>
                 {chiTiet.map((item, i) => (
                   <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
-                    <select value={item.product_id} onChange={e => {
-                      const arr = [...chiTiet];
-                      arr[i].product_id = Number(e.target.value);
-                      setChiTiet(arr);
-                    }} required>
+                    <select value={item.product_id} onChange={e => { const arr = [...chiTiet]; arr[i].product_id = Number(e.target.value); setChiTiet(arr); }} required>
                       <option value="">-- Chọn sản phẩm --</option>
-                      {products.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.ten_sp} (Tồn: {p.so_luong_ton} - {p.gia_ban.toLocaleString()} ₫)
-                        </option>
-                      ))}
+                      {products.map(p => (<option key={p.id} value={p.id}>{p.ten_sp} (Tồn: {p.so_luong_ton} - {p.gia_ban.toLocaleString()} ₫)</option>))}
                     </select>
-                    <input type="number" min={1} placeholder="SL" value={item.so_luong} onChange={e => {
-                      const arr = [...chiTiet];
-                      arr[i].so_luong = Number(e.target.value);
-                      setChiTiet(arr);
-                    }} required style={{ width: '80px' }} />
-                    {chiTiet.length > 1 && (
-                      <button type="button" className="btn-delete" onClick={() => xoaDong(i)}>Xóa</button>
-                    )}
+                    <input type="number" min={1} placeholder="SL" value={item.so_luong} onChange={e => { const arr = [...chiTiet]; arr[i].so_luong = Number(e.target.value); setChiTiet(arr); }} required style={{ width: '80px' }} />
+                    {chiTiet.length > 1 && (<button type="button" className="btn-delete" onClick={() => xoaDong(i)}>Xóa</button>)}
                   </div>
                 ))}
                 <button type="button" className="btn-primary" onClick={themDong}>+ Thêm sản phẩm</button>

@@ -1,9 +1,9 @@
 USE pharmacy_shop;
 
--- 1. Tắt kiểm tra khóa ngoại tạm thời
+-- 1. Tạm tắt kiểm tra khóa ngoại
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 2. Xóa bảng cũ nếu tồn tại
+-- 2. Xóa các bảng cũ nếu tồn tại
 DROP TABLE IF EXISTS import_items;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS import_batches;
@@ -68,7 +68,7 @@ CREATE TABLE `import_batches` (
   UNIQUE KEY `ma_phieu` (`ma_phieu`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 7. Tạo bảng import_items (ON DELETE CASCADE cho product_id)
+-- 7. Tạo bảng import_items
 CREATE TABLE `import_items` (
   `id` int NOT NULL AUTO_INCREMENT,
   `import_batch_id` int DEFAULT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE `import_items` (
   CONSTRAINT `import_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. Tạo bảng order_items (ON DELETE CASCADE cho product_id)
+-- 8. Tạo bảng order_items
 CREATE TABLE `order_items` (
   `id` int NOT NULL AUTO_INCREMENT,
   `order_id` int DEFAULT NULL,
@@ -136,13 +136,20 @@ INSERT INTO `import_items` VALUES
 (3,3,3,15,0);
 
 -- orders
-INSERT INTO `orders` VALUES ();
+INSERT INTO `orders` (`id`, `ma_don`, `customer_id`, `tong_tien`, `ngay_mua`, `trang_thai`) VALUES
+(1, 'DH202512070001', 1, 150000, '2025-12-07 10:00:00', 'Chờ giao'),
+(2, 'DH202512070002', 2, 200000, '2025-12-07 11:00:00', 'Đã giao');
 
 -- order_items
-INSERT INTO `order_items` VALUES ();
+INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `so_luong`, `gia_ban`) VALUES
+(1, 1, 1, 5, 10000),
+(2, 1, 2, 10, 10000),
+(3, 2, 3, 25, 8000);
 
 -- users
-INSERT INTO `users` VALUES ();
+INSERT INTO `users` (`id`, `username`, `fullname`, `password_hash`, `role`, `created_at`) VALUES
+(1, 'admin', 'Quản trị viên', 'admin123', 'admin', NOW()),
+(2, 'staff1', 'Nhân viên bán hàng', 'staff123', 'staff', NOW());
 
 -- 11. Bật lại kiểm tra khóa ngoại
 SET FOREIGN_KEY_CHECKS = 1;

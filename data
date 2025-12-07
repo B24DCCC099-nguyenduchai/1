@@ -1,9 +1,9 @@
 USE pharmacy_shop;
 
--- 1. Tạm tắt kiểm tra khóa ngoại
+-- 1. Tắt kiểm tra khóa ngoại
 SET FOREIGN_KEY_CHECKS = 0;
 
--- 2. Xóa các bảng cũ nếu tồn tại
+-- 2. Xóa bảng cũ
 DROP TABLE IF EXISTS import_items;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS import_batches;
@@ -12,144 +12,150 @@ DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS customers;
 DROP TABLE IF EXISTS users;
 
--- 3. Tạo bảng customers
-CREATE TABLE `customers` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ma_kh` varchar(20) NOT NULL,
-  `ho_ten` varchar(100) NOT NULL,
-  `dia_chi` text,
-  `dien_thoai` varchar(15) DEFAULT NULL,
-  `email` varchar(100) DEFAULT NULL,
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ma_kh` (`ma_kh`),
-  KEY `idx_phone` (`dien_thoai`),
-  KEY `idx_name` (`ho_ten`)
+-- 3. Bảng khách hàng
+CREATE TABLE customers (
+  id INT NOT NULL AUTO_INCREMENT,
+  ma_kh VARCHAR(20) NOT NULL,
+  ho_ten VARCHAR(100) NOT NULL,
+  dia_chi TEXT,
+  dien_thoai VARCHAR(15),
+  email VARCHAR(100),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (ma_kh),
+  KEY idx_phone (dien_thoai),
+  KEY idx_name (ho_ten)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 4. Tạo bảng products
-CREATE TABLE `products` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ma_sp` varchar(20) NOT NULL,
-  `ten_sp` varchar(255) NOT NULL,
-  `gia_ban` decimal(12,0) NOT NULL,
-  `don_vi` varchar(20) DEFAULT 'Vỉ',
-  `so_luong_ton` int DEFAULT '0',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ma_sp` (`ma_sp`)
+-- 4. Bảng sản phẩm
+CREATE TABLE products (
+  id INT NOT NULL AUTO_INCREMENT,
+  ma_sp VARCHAR(20) NOT NULL,
+  ten_sp VARCHAR(255) NOT NULL,
+  gia_ban DECIMAL(12,0) NOT NULL,
+  don_vi VARCHAR(20) DEFAULT 'Vỉ',
+  so_luong_ton INT DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (ma_sp)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 5. Tạo bảng orders
-CREATE TABLE `orders` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ma_don` varchar(20) NOT NULL,
-  `customer_id` int DEFAULT NULL,
-  `tong_tien` decimal(15,2) DEFAULT '0.00',
-  `ngay_mua` datetime DEFAULT CURRENT_TIMESTAMP,
-  `trang_thai` enum('Chờ giao','Đã giao','Hủy') DEFAULT 'Chờ giao',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ma_don` (`ma_don`),
-  KEY `customer_id` (`customer_id`),
-  CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`)
+-- 5. Bảng đơn hàng
+CREATE TABLE orders (
+  id INT NOT NULL AUTO_INCREMENT,
+  ma_don VARCHAR(20) NOT NULL,
+  customer_id INT,
+  tong_tien DECIMAL(15,2) DEFAULT 0,
+  ngay_mua DATETIME DEFAULT CURRENT_TIMESTAMP,
+  trang_thai ENUM('Chờ giao','Đã giao','Hủy') DEFAULT 'Chờ giao',
+  PRIMARY KEY (id),
+  UNIQUE KEY (ma_don),
+  KEY (customer_id),
+  CONSTRAINT fk_order_customer FOREIGN KEY (customer_id)
+      REFERENCES customers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. Tạo bảng import_batches
-CREATE TABLE `import_batches` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `ma_phieu` varchar(20) NOT NULL,
-  `ngay_nhap` date NOT NULL,
-  `nha_cung_cap` varchar(255) DEFAULT NULL,
-  `tong_tien` decimal(12,0) DEFAULT '0',
-  `ghi_chu` text,
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `ma_phieu` (`ma_phieu`)
+-- 6. Bảng phiếu nhập
+CREATE TABLE import_batches (
+  id INT NOT NULL AUTO_INCREMENT,
+  ma_phieu VARCHAR(20) NOT NULL,
+  ngay_nhap DATE NOT NULL,
+  nha_cung_cap VARCHAR(255),
+  tong_tien DECIMAL(12,0) DEFAULT 0,
+  ghi_chu TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (ma_phieu)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 7. Tạo bảng import_items
-CREATE TABLE `import_items` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `import_batch_id` int DEFAULT NULL,
-  `product_id` int DEFAULT NULL,
-  `so_luong` int NOT NULL,
-  `gia_nhap` decimal(12,0) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `import_batch_id` (`import_batch_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `import_items_ibfk_1` FOREIGN KEY (`import_batch_id`) REFERENCES `import_batches` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `import_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+-- 7. Bảng chi tiết phiếu nhập
+CREATE TABLE import_items (
+  id INT NOT NULL AUTO_INCREMENT,
+  import_batch_id INT,
+  product_id INT,
+  so_luong INT NOT NULL,
+  gia_nhap DECIMAL(12,0) NOT NULL,
+  PRIMARY KEY (id),
+  KEY (import_batch_id),
+  KEY (product_id),
+  CONSTRAINT fk_import_batch FOREIGN KEY (import_batch_id)
+      REFERENCES import_batches(id) ON DELETE CASCADE,
+  CONSTRAINT fk_import_product FOREIGN KEY (product_id)
+      REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 8. Tạo bảng order_items
-CREATE TABLE `order_items` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `order_id` int DEFAULT NULL,
-  `product_id` int DEFAULT NULL,
-  `so_luong` int DEFAULT NULL,
-  `gia_ban` decimal(15,2) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `order_id` (`order_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+-- 8. Bảng chi tiết đơn hàng
+CREATE TABLE order_items (
+  id INT NOT NULL AUTO_INCREMENT,
+  order_id INT,
+  product_id INT,
+  so_luong INT NOT NULL,
+  gia_ban DECIMAL(15,2) NOT NULL,
+  PRIMARY KEY (id),
+  KEY (order_id),
+  KEY (product_id),
+  CONSTRAINT fk_order_item_order FOREIGN KEY (order_id)
+      REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_order_item_product FOREIGN KEY (product_id)
+      REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 9. Tạo bảng users
-CREATE TABLE `users` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(50) NOT NULL,
-  `fullname` varchar(100) DEFAULT NULL,
-  `password_hash` varchar(255) NOT NULL,
-  `role` enum('admin','staff') DEFAULT 'staff',
-  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `username` (`username`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 10. Chèn dữ liệu mẫu
 
--- customers
-INSERT INTO `customers` VALUES 
-(1,'KH001','Vũ Duy Khánh','Hoàng Mai, Hà Nội','0911111111','khanh@gmail.com','2025-12-02 22:02:52','2025-12-02 22:02:52'),
-(2,'KH002','Nguyễn Văn Hiệp','Hà Đông, Hà Nội','0911111112','hiep@yahoo.com','2025-12-02 22:02:52','2025-12-02 22:02:52'),
-(3,'KH003','Nguyễn Văn Hải','Hà Đông, Hà Nội','0911111113','hai@gmail.com','2025-12-02 22:02:52','2025-12-02 22:02:52'),
-(4,'KH004','Lê Viết Khánh','Chương Mĩ, Hà Nội','0911111114','vkhanh@gmail.com','2025-12-02 22:02:52','2025-12-02 22:02:52');
+-- 10. Dữ liệu mẫu
 
--- products
-INSERT INTO `products` VALUES 
-(1,'1','Trà',10000,'Vỉ',15,'2025-12-02 17:23:50'),
-(2,'2','Sữa',10000,'Hộp',15,'2025-12-02 22:24:43'),
-(3,'3','Thuốc',8000,'Vỉ',15,'2025-12-02 22:49:51');
+INSERT INTO customers VALUES 
+(1,'KH001','Vũ Duy Khánh','Hoàng Mai, Hà Nội','0911111111','khanh@gmail.com',NOW(),NOW()),
+(2,'KH002','Nguyễn Văn Hiệp','Hà Đông, Hà Nội','0911111112','hiep@yahoo.com',NOW(),NOW()),
+(3,'KH003','Nguyễn Văn Hải','Hà Đông, Hà Nội','0911111113','hai@gmail.com',NOW(),NOW()),
+(4,'KH004','Lê Viết Khánh','Chương Mĩ, Hà Nội','0911111114','vkhanh@gmail.com',NOW(),NOW());
 
--- import_batches
-INSERT INTO `import_batches` VALUES 
-(1,'PN202512021724','2025-12-02','khánh',0,NULL,'2025-12-02 17:24:39'),
-(2,'PN202512022225','2025-12-02','khánh',0,NULL,'2025-12-02 22:25:24'),
-(3,'PN202512022250','2025-12-02','khánh',0,NULL,'2025-12-02 22:50:23');
+INSERT INTO products VALUES 
+(1,'1','Trà',10000,'Vỉ',15,NOW()),
+(2,'2','Sữa',10000,'Hộp',15,NOW()),
+(3,'3','Thuốc',8000,'Vỉ',15,NOW());
 
--- import_items
-INSERT INTO `import_items` VALUES
+INSERT INTO import_batches VALUES
+(1,'PN202512021724','2025-12-02','khánh',0,NULL,NOW()),
+(2,'PN202512022225','2025-12-02','khánh',0,NULL,NOW()),
+(3,'PN202512022250','2025-12-02','khánh',0,NULL,NOW());
+
+-- Fix: giá nhập sản phẩm số 3 không thể = 0
+INSERT INTO import_items VALUES
 (1,1,1,15,5000),
 (2,2,2,15,7000),
-(3,3,3,15,0);
+(3,3,3,15,6000);
 
--- orders
-INSERT INTO `orders` (`id`, `ma_don`, `customer_id`, `tong_tien`, `ngay_mua`, `trang_thai`) VALUES
-(1, 'DH202512070001', 1, 150000, '2025-12-07 10:00:00', 'Chờ giao'),
-(2, 'DH202512070002', 2, 200000, '2025-12-07 11:00:00', 'Đã giao');
+INSERT INTO orders VALUES
+(1,'DH202512070001',1,150000,'2025-12-07 10:00:00','Chờ giao'),
+(2,'DH202512070002',2,200000,'2025-12-07 11:00:00','Đã giao');
 
--- order_items
-INSERT INTO `order_items` (`id`, `order_id`, `product_id`, `so_luong`, `gia_ban`) VALUES
-(1, 1, 1, 5, 10000),
-(2, 1, 2, 10, 10000),
-(3, 2, 3, 25, 8000);
+INSERT INTO order_items VALUES
+(1,1,1,5,10000),
+(2,1,2,10,10000),
+(3,2,3,25,8000);
 
--- users
-INSERT INTO `users` (`id`, `username`, `fullname`, `password_hash`, `role`, `created_at`) VALUES
-(1, 'admin', 'Quản trị viên', 'admin123', 'admin', NOW()),
-(2, 'staff1', 'Nhân viên bán hàng', 'staff123', 'staff', NOW());
+
+CREATE TABLE users (
+  id INT NOT NULL AUTO_INCREMENT,
+  username VARCHAR(50) NOT NULL,
+  fullname VARCHAR(100),
+  email VARCHAR(100),
+  password VARCHAR(255) NOT NULL,   -- 🔥 đổi password_hash → password
+  role ENUM('admin','staff') DEFAULT 'staff',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO users (username, fullname, email, password, role) VALUES
+('admin', 'Quản trị viên', 'admin@example.com', '123456', 'admin'),
+('staff1', 'Nhân viên bán hàng 1', 'staff1@example.com', '123456', 'staff');
+
+
+
+
 
 -- 11. Bật lại kiểm tra khóa ngoại
 SET FOREIGN_KEY_CHECKS = 1;
